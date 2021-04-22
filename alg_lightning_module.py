@@ -75,6 +75,7 @@ class ALGLightningModule(pl.LightningModule):
         # self.manual_backward(ac_loss, opt)
         # opt.step()
         run['acc_loss'].log(ac_loss)
+        run['acc_loss_log'].log(f'{ac_loss}')
         return ac_loss
 
     def configure_optimizers(self):

@@ -2,6 +2,8 @@ from CONSTANTS import *
 
 
 def plot_(title, data):
-    plt.plot(data)
-    plt.title(title)
-    plt.show()
+    fig = px.line(data, title=title)
+    fig.show()
+    # plt.plot(data)
+    # plt.title(title)
+    # plt.show()
