@@ -7,5 +7,7 @@ env
 .idea
 lightning_logs
 logs
+checkpoints
+.neptune
 .ckpt
 example.ckpt

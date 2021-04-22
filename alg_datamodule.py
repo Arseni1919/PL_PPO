@@ -1,5 +1,5 @@
 from typing import Union, List, Any
-
+from alg_logger import run
 from CONSTANTS import *
 from alg_dataset import ALGDataset
 

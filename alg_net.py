@@ -1,4 +1,5 @@
 from CONSTANTS import *
+from alg_logger import run
 
 
 class ALGNet(nn.Module):

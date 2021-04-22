@@ -1,4 +1,5 @@
 from CONSTANTS import *
+from alg_logger import run
 from alg_lightning_module import ALGLightningModule
 from alg_datamodule import ALGDataModule
 from alg_callbaks import ALGCallback
@@ -7,14 +8,14 @@ from help_functions import *
 
 
 def main():
-    tb_logger = pl_loggers.TensorBoardLogger('logs/')
+
     model = ALGLightningModule()
     data_module = ALGDataModule(net=model.net)
 
     trainer = pl.Trainer(callbacks=[ALGCallback()],
                          max_epochs=MAX_EPOCHS,
                          val_check_interval=VAL_CHECKPOINT_INTERVAL,
-                         logger=tb_logger)
+                         logger=False)
 
     trainer.fit(model=model,
                 datamodule=data_module)

@@ -1,5 +1,6 @@
 from CONSTANTS import *
 from alg_net import ALGNet
+from alg_logger import run
 
 
 class ALGLightningModule(pl.LightningModule):
@@ -73,7 +74,7 @@ class ALGLightningModule(pl.LightningModule):
         # opt.zero_grad()
         # self.manual_backward(ac_loss, opt)
         # opt.step()
-
+        run['acc_loss'].log(ac_loss)
         return ac_loss
 
     def configure_optimizers(self):
