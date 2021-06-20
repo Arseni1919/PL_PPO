@@ -17,7 +17,7 @@ class ALGDataset(torch.utils.data.IterableDataset):
         actions = []
         Qval = 0
         self.net.eval()
-        for steps in range(MAX_LENGTH_OF_A_GAME):
+        for steps in range(TRAJECTORY_SIZE):
             value, policy_dist = self.net(np.expand_dims(state, axis=0))
             # value = value.detach().squeeze().numpy()[0, 0]
             value = value.detach().squeeze().item()
@@ -36,7 +36,7 @@ class ALGDataset(torch.utils.data.IterableDataset):
             self.net.entropy_term += entropy
             state = new_state
 
-            if done or steps == MAX_LENGTH_OF_A_GAME - 1:
+            if done or steps == TRAJECTORY_SIZE - 1:
                 Qval, _ = self.net.forward(np.expand_dims(new_state, axis=0))
                 Qval = Qval.detach().numpy()
                 break

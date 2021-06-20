@@ -54,6 +54,7 @@ class ALGLightningModule(pl.LightningModule):
         return self.net(x)
 
     def training_step(self, batch, batch_idx):
+        # ------------------------------------- Unpack Batch -------------------------------------- #
         # rewards, log_probs, states, actions, values, Qval
         rewards = torch.cat(batch[0]).numpy()
         # log_probs = batch[1]
@@ -61,6 +62,16 @@ class ALGLightningModule(pl.LightningModule):
         actions = torch.cat(batch[3])
         # values = batch[4]
         # Qval = batch[5]
+
+        # --------------------------------------- Advantage --------------------------------------- #
+
+        # ---------------------------------- Normalize Advantage ---------------------------------- #
+
+        # ----------------------------------------- Epochs ---------------------------------------- #
+
+        # ------------------------------------ Critic Update -------------------------------------- #
+
+        # ------------------------------------- Actor Update -------------------------------------- #
 
         # compute Real values
         real_values = self.compute_Qvals(rewards)

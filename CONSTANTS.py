@@ -32,7 +32,7 @@ NEPTUNE = False
 
 MAX_EPOCHS = 80  # maximum epoch to execute
 # BATCH_SIZE = 128  # size of the batches
-MAX_LENGTH_OF_A_GAME = 10000
+# MAX_LENGTH_OF_A_GAME = 10000
 LR = 3e-5  # learning rate
 
 # PPO
