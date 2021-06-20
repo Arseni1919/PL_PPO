@@ -5,6 +5,7 @@
 ### Pseudocode
 
 ![](static/pseudocode.png)
+[resource](https://spinningup.openai.com/en/latest/algorithms/ppo.html#pseudocode)
 
 The separate parts:
 - Data module
