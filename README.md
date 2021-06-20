@@ -2,7 +2,7 @@
 
 ## The Algorithm
 
-### Pseudocode
+### Pseudocode from "OpenAI Spinning Up"
 
 ![](static/pseudocode.png)
 [resource](https://spinningup.openai.com/en/latest/algorithms/ppo.html#pseudocode)
