@@ -3,6 +3,29 @@ from alg_net import ALGNet
 from alg_logger import run
 
 
+def calc_adv_ref(trajectory, net_crt, states_v, device="cpu"):
+    values_v = net_crt(states_v)
+    values = values_v.squeeze().data.cpu().numpy()
+    last_gae = 0.0
+    result_adv = []
+    result_ref = []
+
+    for val, next_val, (exp,) in zip(reversed(values[:-1]), reversed(values[1:]), reversed(trajectory[:-1])):
+        if exp.done:
+            delta = exp.reward - val
+            last_gae = delta
+        else:
+            delta = exp.reward + GAMMA * next_val - val
+            last_gae = delta + GAMMA * GAE_LAMBDA * last_gae
+
+        result_adv.append(last_gae)
+        result_ref.append(last_gae + val)
+
+    adv_v = torch.FloatTensor(list(reversed(result_adv)))
+    ref_v = torch.FloatTensor(list(reversed(result_ref)))
+    return adv_v.to(device), ref_v.to(device)
+
+
 class ALGLightningModule(pl.LightningModule):
 
     def __init__(self):
@@ -74,8 +97,9 @@ class ALGLightningModule(pl.LightningModule):
         # opt.zero_grad()
         # self.manual_backward(ac_loss, opt)
         # opt.step()
-        run['acc_loss'].log(ac_loss)
-        run['acc_loss_log'].log(f'{ac_loss}')
+        if NEPTUNE:
+            run['acc_loss'].log(ac_loss)
+            run['acc_loss_log'].log(f'{ac_loss}')
         return ac_loss
 
     def configure_optimizers(self):

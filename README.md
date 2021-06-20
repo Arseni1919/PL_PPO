@@ -2,6 +2,9 @@
 
 ## The Algorithm
 
+### Pseudocode
+
+![](static/pseudocode.png)
 
 The separate parts:
 - Data module
@@ -9,6 +12,7 @@ The separate parts:
 - PL module
 - Callbacks
 - Data set
+
 
 ## `CartPole-v0` parameters:
 ```
@@ -39,6 +43,7 @@ A2C net:
 - [Kullback–Leibler divergence (YouTube video) - great](https://www.youtube.com/watch?v=ErfnhcEV1O8&ab_channel=Aur%C3%A9lienG%C3%A9ron)
 - [1 - PPO implementation](https://colab.research.google.com/github/nikhilbarhate99/PPO-PyTorch/blob/master/PPO_colab.ipynb#scrollTo=yr-ZjT_CGyEi)
 - [2 - PPO implementation with PL](https://github.com/sid-sundrani/ppo_lightning/blob/master/ppo_model.py)
+- [3 - PPO implementation - OpenAI Spinning Up](https://spinningup.openai.com/en/latest/algorithms/ppo.html)
 
 
 
