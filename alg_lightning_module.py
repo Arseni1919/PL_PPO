@@ -4,6 +4,12 @@ from alg_logger import run
 
 
 def calc_adv_ref(trajectory, net_crt, states_v, device="cpu"):
+    """
+    The following takes the trajectory with steps and calculates advantages for
+    the actor and reference values for the critic training.
+
+    :param trajectory: in size of every batch
+    """
     values_v = net_crt(states_v)
     values = values_v.squeeze().data.cpu().numpy()
     last_gae = 0.0
@@ -36,7 +42,9 @@ class ALGLightningModule(pl.LightningModule):
         self.n_actions = self.env.action_space.n
         self.log_for_loss = []
         self.net = ALGNet(self.obs_size, self.n_actions)
-        # self.automatic_optimization = False
+
+        # NOT USING OPTIMIZERS AUTOMATICALLY
+        self.automatic_optimization = False
 
         # self.agent = Agent()
         # self.total_reward = 0
@@ -93,13 +101,14 @@ class ALGLightningModule(pl.LightningModule):
         # self.log('train loss', tl, on_step=True)
         self.log_for_loss.append(tl)
 
+        if NEPTUNE:
+            run['acc_loss'].log(ac_loss)
+            run['acc_loss_log'].log(f'{ac_loss}')
+
         # opt = self.optimizers()
         # opt.zero_grad()
         # self.manual_backward(ac_loss, opt)
         # opt.step()
-        if NEPTUNE:
-            run['acc_loss'].log(ac_loss)
-            run['acc_loss_log'].log(f'{ac_loss}')
         return ac_loss
 
     def configure_optimizers(self):
