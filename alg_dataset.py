@@ -16,6 +16,8 @@ class ALGDataset(torch.utils.data.IterableDataset):
         states = []
         actions = []
         dones = []
+        lengths = []
+        length = 0
         Qval = 0
         self.net.eval()
         for steps in range(TRAJECTORY_SIZE):
@@ -39,8 +41,10 @@ class ALGDataset(torch.utils.data.IterableDataset):
             state = new_state
 
             # self.env.render()
-
+            length += 1
             if done:
+                lengths.append(length)
+                length = 0
                 state = self.env.reset()
 
             if steps == TRAJECTORY_SIZE - 1:
@@ -49,7 +53,7 @@ class ALGDataset(torch.utils.data.IterableDataset):
                 break
 
         self.net.train()
-        yield rewards, log_probs, states, actions, values, Qval, dones
+        yield rewards, log_probs, states, actions, values, Qval, dones, lengths
 
     def append(self, experience):
         self.buffer.append(experience)

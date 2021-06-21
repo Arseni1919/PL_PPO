@@ -32,7 +32,7 @@ PLOT_LIVE = True
 # ------------------FOR ALG:----------------- #
 # ------------------------------------------- #
 
-BIG_EPOCHS = 11  # maximum epoch to execute
+BIG_EPOCHS = 30  # maximum epoch to execute
 # BATCH_SIZE = 128  # size of the batches
 # MAX_LENGTH_OF_A_GAME = 10000
 LR = 3e-5  # learning rate

@@ -20,7 +20,7 @@ class ALGDataModule(pl.LightningDataModule):
         pass
 
     def train_dataloader(self):
-        return DataLoader(self.dataset)
+        return DataLoader(self.dataset, num_workers=4)
 
     def test_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
         pass

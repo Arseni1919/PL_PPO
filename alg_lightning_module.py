@@ -36,11 +36,9 @@ class ALGLightningModule(pl.LightningModule):
         values = batch[4]
         # Qval = batch[5]
         dones = batch[6]
+        lengths = batch[7]
 
         # --------------------------------------- Advantage --------------------------------------- #
-        # values_v = net_crt(states)
-        values_v, policy_dists = self.net(states.numpy())
-        values = values_v.squeeze().data.cpu().numpy()
         last_gae = 0.0
         result_adv = []
         result_ref = []
@@ -62,9 +60,7 @@ class ALGLightningModule(pl.LightningModule):
         ref_v = torch.FloatTensor(list(reversed(result_ref)))
 
         # ---------------------------------- Normalize Advantage ---------------------------------- #
-        action_prob_v = policy_dists[0, range(len(actions)), actions]
-        log_action_prob_v = torch.log(action_prob_v)
-        log_action_prob_v = log_action_prob_v.detach()
+        log_action_prob_v = torch.FloatTensor(log_probs)
         adv_v = adv_v - torch.mean(adv_v)
         adv_v /= torch.std(adv_v)
         # ----------------------------------------- Epochs ---------------------------------------- #
@@ -78,7 +74,7 @@ class ALGLightningModule(pl.LightningModule):
                 batch_adv_v = batch_adv_v.unsqueeze(-1)
                 batch_ref_v = ref_v[batch_ofs:batch_l]
                 batch_old_logprob_v = log_action_prob_v[batch_ofs:batch_l]
-        # ------------------------------------ Critic Update -------------------------------------- #
+                # ---------------------------- Critic Update -------------------------------------- #
                 # opt = self.optimizers()
                 # opt.zero_grad()
                 # self.manual_backward(ac_loss, opt)
@@ -92,7 +88,7 @@ class ALGLightningModule(pl.LightningModule):
                 loss_value_v = F.mse_loss(batch_values_v, batch_ref_v)
                 loss_value_v.backward()
                 opt.step()
-        # ------------------------------------- Actor Update -------------------------------------- #
+                # ----------------------------- Actor Update -------------------------------------- #
                 opt.zero_grad()
                 # mu_v = net_act(states_v)
                 values_v, policy_dists = self.net(states_v.numpy())
@@ -108,7 +104,7 @@ class ALGLightningModule(pl.LightningModule):
                 loss_policy_v = -torch.min(surr_obj_v, clipped_surr_v).mean()
                 loss_policy_v.backward()
                 opt.step()
-        # ---------------------------------------------------------------------------------------- #
+                # -------------------------------------------------------------------------------- #
 
                 # logging
                 loss = loss_value_v + loss_policy_v
@@ -118,7 +114,8 @@ class ALGLightningModule(pl.LightningModule):
                     run['acc_loss'].log(loss)
                     run['acc_loss_log'].log(f'{loss}')
 
-        self.plot({'rewards': rewards, 'values': values, 'loss': self.log_for_loss})
+        self.plot({'rewards': rewards, 'values': values, 'ref_v': ref_v.numpy(),
+                   'loss': self.log_for_loss, 'lengths': lengths, 'adv_v': adv_v.numpy()})
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.net.parameters(), lr=LR)
