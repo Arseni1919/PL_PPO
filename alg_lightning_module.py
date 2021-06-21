@@ -120,7 +120,7 @@ class ALGLightningModule(pl.LightningModule):
         return torch.optim.Adam(self.net.parameters(), lr=LR)
 
     def plot(self):
-        # plot live
+        # plot live:
         if PLOT_LIVE:
             plt.clf()
             plt.plot(list(range(len(self.log_for_loss))), self.log_for_loss)
