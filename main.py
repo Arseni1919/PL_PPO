@@ -13,7 +13,7 @@ def main():
     data_module = ALGDataModule(net=model.net)
 
     trainer = pl.Trainer(callbacks=[ALGCallback()],
-                         max_epochs=MAX_EPOCHS,
+                         max_epochs=BIG_EPOCHS,
                          val_check_interval=VAL_CHECKPOINT_INTERVAL,
                          logger=False)
 

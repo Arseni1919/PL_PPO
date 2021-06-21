@@ -38,10 +38,16 @@ class ALGDataset(torch.utils.data.IterableDataset):
             self.net.entropy_term += entropy
             state = new_state
 
-            if done or steps == TRAJECTORY_SIZE - 1:
+            # self.env.render()
+
+            if done:
+                state = self.env.reset()
+
+            if steps == TRAJECTORY_SIZE - 1:
                 Qval, _ = self.net.forward(np.expand_dims(new_state, axis=0))
                 Qval = Qval.detach().numpy()
                 break
+
         self.net.train()
         yield rewards, log_probs, states, actions, values, Qval, dones
 

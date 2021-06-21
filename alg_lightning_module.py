@@ -17,6 +17,7 @@ class ALGLightningModule(pl.LightningModule):
         # NOT USING OPTIMIZERS AUTOMATICALLY
         self.automatic_optimization = False
 
+        self.fig, _ = plt.subplots(nrows=2, ncols=3, figsize=(12, 6))
         # self.total_reward = 0
         # self.episode_reward = 0
 
@@ -27,12 +28,12 @@ class ALGLightningModule(pl.LightningModule):
         # --------------------------------------- Optimizer --------------------------------------- #
         opt = self.optimizers()
         # ------------------------------------- Unpack Batch -------------------------------------- #
-        # rewards, log_probs, states, actions, values, Qval
+        # rewards, log_probs, states, actions, values, Qval, dones
         rewards = torch.cat(batch[0]).numpy()
-        # log_probs = batch[1]
+        log_probs = batch[1]
         states = torch.cat(batch[2])
         actions = torch.cat(batch[3])
-        # values = batch[4]
+        values = batch[4]
         # Qval = batch[5]
         dones = batch[6]
 
@@ -68,7 +69,8 @@ class ALGLightningModule(pl.LightningModule):
         adv_v /= torch.std(adv_v)
         # ----------------------------------------- Epochs ---------------------------------------- #
         for epoch in range(PPO_EPOCHES):
-            for batch_ofs in range(0, len(states), PPO_BATCH_SIZE):
+            for indx, batch_ofs in enumerate(range(0, len(states), PPO_BATCH_SIZE)):
+                # print(f'batch indx: {indx}')
                 batch_l = batch_ofs + PPO_BATCH_SIZE
                 states_v = states[batch_ofs:batch_l]
                 actions_v = actions[batch_ofs:batch_l]
@@ -84,8 +86,10 @@ class ALGLightningModule(pl.LightningModule):
 
                 opt.zero_grad()
                 values_v, policy_dists = self.net(states_v.numpy())
-
-                loss_value_v = F.mse_loss(values_v.squeeze(-1), batch_ref_v)
+                batch_values_v = values_v.squeeze()
+                if batch_values_v.size() != batch_ref_v.size():
+                    print(f'bad -> input: {batch_values_v.size()}, target: {batch_ref_v.size()}')
+                loss_value_v = F.mse_loss(batch_values_v, batch_ref_v)
                 loss_value_v.backward()
                 opt.step()
         # ------------------------------------- Actor Update -------------------------------------- #
@@ -104,7 +108,7 @@ class ALGLightningModule(pl.LightningModule):
                 loss_policy_v = -torch.min(surr_obj_v, clipped_surr_v).mean()
                 loss_policy_v.backward()
                 opt.step()
-        # ------------------------------------- ----------- -------------------------------------- #
+        # ---------------------------------------------------------------------------------------- #
 
                 # logging
                 loss = loss_value_v + loss_policy_v
@@ -114,17 +118,41 @@ class ALGLightningModule(pl.LightningModule):
                     run['acc_loss'].log(loss)
                     run['acc_loss_log'].log(f'{loss}')
 
-        self.plot()
+        self.plot({'rewards': rewards, 'values': values, 'loss': self.log_for_loss})
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.net.parameters(), lr=LR)
 
-    def plot(self):
+    def plot(self, graph_dict):
         # plot live:
         if PLOT_LIVE:
-            plt.clf()
-            plt.plot(list(range(len(self.log_for_loss))), self.log_for_loss)
+            # plt.clf()
+            # plt.plot(list(range(len(self.log_for_loss))), self.log_for_loss)
+            # plt.plot(list(range(len(rewards))), rewards)
+
+            ax = self.fig.get_axes()
+
+            for indx, (k, v) in enumerate(graph_dict.items()):
+                ax[indx].cla()
+                ax[indx].plot(list(range(len(v))), v, c='r')  #, edgecolor='b')
+                ax[indx].set_title(f'Plot: {k}')
+                ax[indx].set_xlabel('iters')
+                ax[indx].set_ylabel(f'{k}')
+
+            # ax[1].cla()
+            # ax[1].scatter(list(range(len(self.log_for_loss))), self.log_for_loss, marker='o', c='r', edgecolor='b')
+            # # ax[1].legend(loc=(0.65, 0.8))
+            # ax[1].set_title('log_for_loss')
+            # # ax[1].yaxis.tick_right()
+            # ax[0].set_xlabel('$iters$')
+            # ax[0].set_ylabel('$log_for_loss$')
+
             plt.pause(0.05)
+            # plt.pause(1.05)
+            # plt.show()
+
+
+
 
     @staticmethod
     def compute_Qvals(rewards):
@@ -134,21 +162,5 @@ class ALGLightningModule(pl.LightningModule):
             Qval = rewards[t] + GAMMA * Qval
             Qvals[t] = Qval
         return Qvals
-
-
-
-# update actor critic
-# values = torch.FloatTensor(values)
-# Qvals = torch.FloatTensor(Qvals)
-# log_probs = torch.stack(log_probs)
-
-# advantage = Qvals - values
-# actor_loss = (-log_probs * advantage).mean()
-#
-# values, _ = self.net(states.numpy())
-# values = torch.FloatTensor(values.squeeze())
-# advantage = Qvals - values
-# # critic_loss = F.mse_loss(values, Qvals)
-# critic_loss = 0.5 * advantage.pow(2).mean()
 
 

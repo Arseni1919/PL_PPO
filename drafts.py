@@ -45,3 +45,22 @@ print(np.random.choice(2, p=[0.5,0.5]))
 #     # action = random.choice(list(range(5)))
 #     # action = np.random.random(4)
 #     env.step(action)
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+np.random.seed(19680801)
+data = np.random.random((50, 50, 50))
+fig, _ = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))
+
+ax = fig.get_axes()
+# fig, ax = plt.subplots()
+
+for i in range(len(data)):
+    ax[0].cla()
+    ax[0].imshow(data[i])
+    ax[0].set_title("frame {}".format(i))
+    # Note that using time.sleep does *not* work here!
+    plt.pause(0.1)
