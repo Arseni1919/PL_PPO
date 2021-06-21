@@ -3,35 +3,6 @@ from alg_net import ALGNet
 from alg_logger import run
 
 
-def calc_adv_ref(trajectory, net_crt, states_v, device="cpu"):
-    """
-    The following takes the trajectory with steps and calculates advantages for
-    the actor and reference values for the critic training.
-
-    :param trajectory: in size of every batch
-    """
-    values_v = net_crt(states_v)
-    values = values_v.squeeze().data.cpu().numpy()
-    last_gae = 0.0
-    result_adv = []
-    result_ref = []
-
-    for val, next_val, (exp,) in zip(reversed(values[:-1]), reversed(values[1:]), reversed(trajectory[:-1])):
-        if exp.done:
-            delta = exp.reward - val
-            last_gae = delta
-        else:
-            delta = exp.reward + GAMMA * next_val - val
-            last_gae = delta + GAMMA * GAE_LAMBDA * last_gae
-
-        result_adv.append(last_gae)
-        result_ref.append(last_gae + val)
-
-    adv_v = torch.FloatTensor(list(reversed(result_adv)))
-    ref_v = torch.FloatTensor(list(reversed(result_ref)))
-    return adv_v.to(device), ref_v.to(device)
-
-
 class ALGLightningModule(pl.LightningModule):
 
     def __init__(self):
@@ -46,7 +17,6 @@ class ALGLightningModule(pl.LightningModule):
         # NOT USING OPTIMIZERS AUTOMATICALLY
         self.automatic_optimization = False
 
-        # self.agent = Agent()
         # self.total_reward = 0
         # self.episode_reward = 0
 
@@ -54,6 +24,8 @@ class ALGLightningModule(pl.LightningModule):
         return self.net(x)
 
     def training_step(self, batch, batch_idx):
+        # --------------------------------------- Optimizer --------------------------------------- #
+        opt = self.optimizers()
         # ------------------------------------- Unpack Batch -------------------------------------- #
         # rewards, log_probs, states, actions, values, Qval
         rewards = torch.cat(batch[0]).numpy()
@@ -62,65 +34,89 @@ class ALGLightningModule(pl.LightningModule):
         actions = torch.cat(batch[3])
         # values = batch[4]
         # Qval = batch[5]
+        dones = batch[6]
 
         # --------------------------------------- Advantage --------------------------------------- #
+        # values_v = net_crt(states)
+        values_v, policy_dists = self.net(states.numpy())
+        values = values_v.squeeze().data.cpu().numpy()
+        last_gae = 0.0
+        result_adv = []
+        result_ref = []
+
+        for val, next_val, reward, done in zip(reversed(values[:-1]), reversed(values[1:]),
+                                               reversed(rewards[:-1]), reversed(dones[:-1])):
+            if done:
+                delta = reward - val
+                last_gae = delta
+            else:
+                delta = reward + GAMMA * next_val - val
+                last_gae = delta + GAMMA * GAE_LAMBDA * last_gae
+
+            result_adv.append(last_gae)
+            result_ref.append(last_gae + val)
+
+        result_ref.append(rewards[-1])
+        adv_v = torch.FloatTensor(list(reversed(result_adv)))
+        ref_v = torch.FloatTensor(list(reversed(result_ref)))
 
         # ---------------------------------- Normalize Advantage ---------------------------------- #
-
-        # ----------------------------------------- Epochs ---------------------------------------- #
-
-        # ------------------------------------ Critic Update -------------------------------------- #
-
-        # ------------------------------------- Actor Update -------------------------------------- #
-
-        # compute Real values
-        real_values = self.compute_Qvals(rewards)
-        discounted_rewards = torch.tensor(real_values)
-        # normalize discounted rewards
-        # discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std() + 1e-9)
-        # values, policy_dists = self.net(torch.unsqueeze(states, 0))
-        values, policy_dists = self.net(states.numpy())
-
-        # Accumulate the policy gradients
         action_prob_v = policy_dists[0, range(len(actions)), actions]
         log_action_prob_v = torch.log(action_prob_v)
-        adv_v = real_values - values.detach().squeeze().numpy()
-        adv_v = torch.tensor(adv_v)
-        # actor_loss = -1 * log_action_prob_v * discounted_rewards
-        actor_loss = -1 * log_action_prob_v * adv_v
-        actor_loss = actor_loss.sum()
-        # actor_loss.sum().backward(retain_graph=True)
+        log_action_prob_v = log_action_prob_v.detach()
+        adv_v = adv_v - torch.mean(adv_v)
+        adv_v /= torch.std(adv_v)
+        # ----------------------------------------- Epochs ---------------------------------------- #
+        for epoch in range(PPO_EPOCHES):
+            for batch_ofs in range(0, len(states), PPO_BATCH_SIZE):
+                batch_l = batch_ofs + PPO_BATCH_SIZE
+                states_v = states[batch_ofs:batch_l]
+                actions_v = actions[batch_ofs:batch_l]
+                batch_adv_v = adv_v[batch_ofs:batch_l]
+                batch_adv_v = batch_adv_v.unsqueeze(-1)
+                batch_ref_v = ref_v[batch_ofs:batch_l]
+                batch_old_logprob_v = log_action_prob_v[batch_ofs:batch_l]
+        # ------------------------------------ Critic Update -------------------------------------- #
+                # opt = self.optimizers()
+                # opt.zero_grad()
+                # self.manual_backward(ac_loss, opt)
+                # opt.step()
 
-        # Accumulate the value gradients
-        values_to_mse = values.squeeze(-1).float()
-        real_values_to_mse = torch.unsqueeze(torch.tensor(real_values), 0).float()
-        critic_loss = F.mse_loss(values_to_mse, real_values_to_mse)
+                opt.zero_grad()
+                values_v, policy_dists = self.net(states_v.numpy())
 
-        # Entropy
-        # entropy = action_prob_v.detach() * log_action_prob_v.detach()
-        # entropy = - entropy.sum().item()
-        # entropy_term = ENTROPY_BETA * entropy
+                loss_value_v = F.mse_loss(values_v.squeeze(-1), batch_ref_v)
+                loss_value_v.backward()
+                opt.step()
+        # ------------------------------------- Actor Update -------------------------------------- #
+                opt.zero_grad()
+                # mu_v = net_act(states_v)
+                values_v, policy_dists = self.net(states_v.numpy())
 
-        # ac_loss = actor_loss + critic_loss - entropy_term
-        # ac_loss = critic_loss + entropy_term
-        ac_loss = actor_loss + critic_loss
+                # logprob_pi_v = calc_logprob( mu_v, net_act.logstd, actions_v)
+                action_prob_v = policy_dists[0, range(len(actions_v)), actions_v]
+                logprob_pi_v = torch.log(action_prob_v)
 
-        # logging
-        # tr = np.sum(rewards)
-        # self.log('total_reward', tr)
-        tl = ac_loss.item()
-        # self.log('train loss', tl, on_step=True)
-        self.log_for_loss.append(tl)
+                ratio_v = torch.exp(logprob_pi_v - batch_old_logprob_v)
+                surr_obj_v = batch_adv_v * ratio_v
+                c_ratio_v = torch.clamp(ratio_v, 1.0 - PPO_EPS, 1.0 + PPO_EPS)
+                clipped_surr_v = batch_adv_v * c_ratio_v
+                loss_policy_v = -torch.min(surr_obj_v, clipped_surr_v).mean()
+                loss_policy_v.backward()
+                opt.step()
+        # ------------------------------------- ----------- -------------------------------------- #
 
-        if NEPTUNE:
-            run['acc_loss'].log(ac_loss)
-            run['acc_loss_log'].log(f'{ac_loss}')
+                # logging
+                loss = loss_value_v + loss_policy_v
+                self.log_for_loss.append(loss.item())
 
-        # opt = self.optimizers()
-        # opt.zero_grad()
-        # self.manual_backward(ac_loss, opt)
-        # opt.step()
-        return ac_loss
+                if NEPTUNE:
+                    run['acc_loss'].log(loss)
+                    run['acc_loss_log'].log(f'{loss}')
+
+        plt.clf()
+        plt.plot(list(range(len(self.log_for_loss))), self.log_for_loss)
+        plt.pause(0.05)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.net.parameters(), lr=LR)

@@ -22,7 +22,7 @@ import time
 # ENV = "CartPole-v0"  # gym environment tag
 ENV = 'LunarLander-v2'
 # ENV='MountainCar-v0'
-NUMBER_OF_GAMES = 10
+NUMBER_OF_GAMES = 3
 SAVE_RESULTS = True
 # NEPTUNE = True
 NEPTUNE = False
@@ -30,7 +30,7 @@ NEPTUNE = False
 # ------------------FOR ALG:----------------- #
 # ------------------------------------------- #
 
-MAX_EPOCHS = 80  # maximum epoch to execute
+MAX_EPOCHS = 50  # maximum epoch to execute
 # BATCH_SIZE = 128  # size of the batches
 # MAX_LENGTH_OF_A_GAME = 10000
 LR = 3e-5  # learning rate
