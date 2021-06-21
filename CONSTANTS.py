@@ -26,6 +26,8 @@ NUMBER_OF_GAMES = 3
 SAVE_RESULTS = True
 # NEPTUNE = True
 NEPTUNE = False
+PLOT_LIVE = True
+# PLOT_LIVE = False
 # ------------------------------------------- #
 # ------------------FOR ALG:----------------- #
 # ------------------------------------------- #

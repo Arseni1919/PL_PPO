@@ -114,12 +114,17 @@ class ALGLightningModule(pl.LightningModule):
                     run['acc_loss'].log(loss)
                     run['acc_loss_log'].log(f'{loss}')
 
-        plt.clf()
-        plt.plot(list(range(len(self.log_for_loss))), self.log_for_loss)
-        plt.pause(0.05)
+        self.plot()
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.net.parameters(), lr=LR)
+
+    def plot(self):
+        # plot live
+        if PLOT_LIVE:
+            plt.clf()
+            plt.plot(list(range(len(self.log_for_loss))), self.log_for_loss)
+            plt.pause(0.05)
 
     @staticmethod
     def compute_Qvals(rewards):
