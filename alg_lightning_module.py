@@ -139,14 +139,6 @@ class ALGLightningModule(pl.LightningModule):
                 ax[indx].set_xlabel('iters')
                 ax[indx].set_ylabel(f'{k}')
 
-            # ax[1].cla()
-            # ax[1].scatter(list(range(len(self.log_for_loss))), self.log_for_loss, marker='o', c='r', edgecolor='b')
-            # # ax[1].legend(loc=(0.65, 0.8))
-            # ax[1].set_title('log_for_loss')
-            # # ax[1].yaxis.tick_right()
-            # ax[0].set_xlabel('$iters$')
-            # ax[0].set_ylabel('$log_for_loss$')
-
             plt.pause(0.05)
             # plt.pause(1.05)
             # plt.show()
