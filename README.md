@@ -7,13 +7,7 @@
 ![](static/pseudocode.png)
 [resource](https://spinningup.openai.com/en/latest/algorithms/ppo.html#pseudocode)
 
-The separate parts:
-- Data module
-- Neural Nets
-- PL module
-- Callbacks
-- Data set
-
+The main thing - clipped weights.
 
 ## `CartPole-v0` parameters:
 ```
