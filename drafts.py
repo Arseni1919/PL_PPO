@@ -50,7 +50,8 @@ print(np.random.choice(2, p=[0.5,0.5]))
 import matplotlib.pyplot as plt
 import numpy as np
 
-
+for indx, batch_ofs in enumerate(range(0, 15, 5)):
+    print(f'indx: {indx}, batch_ofs: {batch_ofs}')
 np.random.seed(19680801)
 data = np.random.random((50, 50, 50))
 fig, _ = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))

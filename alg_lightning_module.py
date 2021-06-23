@@ -17,7 +17,8 @@ class ALGLightningModule(pl.LightningModule):
         # NOT USING OPTIMIZERS AUTOMATICALLY
         self.automatic_optimization = False
 
-        self.fig, _ = plt.subplots(nrows=2, ncols=3, figsize=(12, 6))
+        if PLOT_LIVE:
+            self.fig, _ = plt.subplots(nrows=2, ncols=3, figsize=(12, 6))
         # self.total_reward = 0
         # self.episode_reward = 0
 
@@ -55,7 +56,6 @@ class ALGLightningModule(pl.LightningModule):
             result_adv.append(last_gae)
             result_ref.append(last_gae + val)
 
-        result_ref.append(rewards[-1])
         adv_v = torch.FloatTensor(list(reversed(result_adv)))
         ref_v = torch.FloatTensor(list(reversed(result_ref)))
 
@@ -65,44 +65,43 @@ class ALGLightningModule(pl.LightningModule):
         adv_v /= torch.std(adv_v)
         # ----------------------------------------- Epochs ---------------------------------------- #
         for epoch in range(PPO_EPOCHES):
-            for indx, batch_ofs in enumerate(range(0, len(states), PPO_BATCH_SIZE)):
+            for indx, batch_ofs in enumerate(range(0, len(states)-1, PPO_BATCH_SIZE)):
                 # print(f'batch indx: {indx}')
-                batch_l = batch_ofs + PPO_BATCH_SIZE
-                states_v = states[batch_ofs:batch_l]
-                actions_v = actions[batch_ofs:batch_l]
-                batch_adv_v = adv_v[batch_ofs:batch_l]
-                batch_adv_v = batch_adv_v.unsqueeze(-1)
-                batch_ref_v = ref_v[batch_ofs:batch_l]
-                batch_old_logprob_v = log_action_prob_v[batch_ofs:batch_l]
+                b_batch_l = batch_ofs + PPO_BATCH_SIZE
+                b_states_v = states[batch_ofs:b_batch_l]
+                b_actions_v = actions[batch_ofs:b_batch_l]
+                b_adv_v = adv_v[batch_ofs:b_batch_l]
+                b_adv_v = b_adv_v.unsqueeze(-1)
+                b_ref_v = ref_v[batch_ofs:b_batch_l]
+                b_old_logprob_v = log_action_prob_v[batch_ofs:b_batch_l]
+
+                n_values_v, n_policy_dists = self.net(b_states_v.numpy())
                 # ---------------------------- Critic Update -------------------------------------- #
-                # opt = self.optimizers()
-                # opt.zero_grad()
-                # self.manual_backward(ac_loss, opt)
+                opt.zero_grad()
+                n_values_v_squeezed = n_values_v.squeeze()
+                if n_values_v_squeezed.size() != b_ref_v.size():
+                    print(f'bad -> input: {n_values_v_squeezed.size()}, target: {b_ref_v.size()}')
+
+                # def mse_loss(input: Tensor, target: Tensor, ...
+                loss_value_v = F.mse_loss(n_values_v_squeezed, b_ref_v)
+                # loss_value_v.backward()
                 # opt.step()
-
-                opt.zero_grad()
-                values_v, policy_dists = self.net(states_v.numpy())
-                batch_values_v = values_v.squeeze()
-                if batch_values_v.size() != batch_ref_v.size():
-                    print(f'bad -> input: {batch_values_v.size()}, target: {batch_ref_v.size()}')
-                loss_value_v = F.mse_loss(batch_values_v, batch_ref_v)
-                loss_value_v.backward()
-                opt.step()
                 # ----------------------------- Actor Update -------------------------------------- #
-                opt.zero_grad()
-                # mu_v = net_act(states_v)
-                values_v, policy_dists = self.net(states_v.numpy())
+                # opt.zero_grad()
+                # n_log_action_prob_v = calc_logprob( mu_v, net_act.logstd, b_actions_v)
+                n_action_prob_v = n_policy_dists[0, range(len(b_actions_v)), b_actions_v]
+                n_log_action_prob_v = torch.log(n_action_prob_v)
 
-                # logprob_pi_v = calc_logprob( mu_v, net_act.logstd, actions_v)
-                action_prob_v = policy_dists[0, range(len(actions_v)), actions_v]
-                logprob_pi_v = torch.log(action_prob_v)
+                n_ratio_v = torch.exp(n_log_action_prob_v - b_old_logprob_v)
+                n_surr_obj_v = b_adv_v * n_ratio_v
+                n_c_ratio_v = torch.clamp(n_ratio_v, min=1.0 - PPO_EPS, max=1.0 + PPO_EPS)
+                n_clipped_surr_v = b_adv_v * n_c_ratio_v
+                loss_policy_v = -torch.min(n_surr_obj_v, n_clipped_surr_v).mean()
+                torch.autograd.set_detect_anomaly(True)
+                # loss_policy_v.backward()
 
-                ratio_v = torch.exp(logprob_pi_v - batch_old_logprob_v)
-                surr_obj_v = batch_adv_v * ratio_v
-                c_ratio_v = torch.clamp(ratio_v, 1.0 - PPO_EPS, 1.0 + PPO_EPS)
-                clipped_surr_v = batch_adv_v * c_ratio_v
-                loss_policy_v = -torch.min(surr_obj_v, clipped_surr_v).mean()
-                loss_policy_v.backward()
+                loss = loss_value_v + loss_policy_v
+                loss.backward()
                 opt.step()
                 # -------------------------------------------------------------------------------- #
 

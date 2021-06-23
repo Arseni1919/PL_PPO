@@ -26,21 +26,23 @@ NUMBER_OF_GAMES = 3
 SAVE_RESULTS = True
 # NEPTUNE = True
 NEPTUNE = False
-PLOT_LIVE = True
-# PLOT_LIVE = False
+# PLOT_LIVE = True
+PLOT_LIVE = False
 # ------------------------------------------- #
 # ------------------FOR ALG:----------------- #
 # ------------------------------------------- #
 
-BIG_EPOCHS = 30  # maximum epoch to execute
+BIG_EPOCHS = 20  # maximum epoch to execute
 # BATCH_SIZE = 128  # size of the batches
 # MAX_LENGTH_OF_A_GAME = 10000
-LR = 3e-5  # learning rate
+# LR = 3e-5  # learning rate
+LR = 1e-4  # learning rate
 
 # PPO
 GAMMA = 0.99  # discount factor
 GAE_LAMBDA = 0.95
-TRAJECTORY_SIZE = 2048
+# TRAJECTORY_SIZE = 2049
+TRAJECTORY_SIZE = 1025
 LEARNING_RATE_ACTOR = 1e-5
 LEARNING_RATE_CRITIC = 1e-4
 PPO_EPS = 0.2
